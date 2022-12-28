@@ -4,4 +4,4 @@ RUN apt-get update -qq && apt-get upgrade -qq \
 COPY . /opt/app
 WORKDIR /opt/app
 RUN bundle install
-CMD bundle exec rackup config.ru
+CMD bundle exec rackup config.ru -o 0.0.0.0 -E production
