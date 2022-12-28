@@ -14,6 +14,7 @@ class WebApp < Sinatra::Base
 
   enable :sessions
   set :session_secret, ENV['SESSION_SECRET'] || SecureRandom.hex(32)
+  set :bind, '0.0.0.0'
   # rubocop:disable all
   def index_content(signature, notice = nil, error = nil)
     c = <<-EOS
