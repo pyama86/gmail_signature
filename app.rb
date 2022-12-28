@@ -4,6 +4,7 @@ require 'sinatra/base'
 require 'sinatra/reloader'
 require 'google/apis/gmail_v1'
 require 'securerandom'
+require 'erb'
 
 Gmail = Google::Apis::GmailV1
 class WebApp < Sinatra::Base
@@ -12,24 +13,66 @@ class WebApp < Sinatra::Base
   end
 
   enable :sessions
-  set :session_secret, SecureRandom.hex(32)
+  set :session_secret, ENV['SESSION_SECRET'] || SecureRandom.hex(32)
+  # rubocop:disable all
+  def index_content(signature, notice = nil, error = nil)
+    c = <<-EOS
+<html>
+  <head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div class="container">
+       <h1>君の本気の署名を見せてくれ</h1>
+       <% if notice %>
+       <div class="alert alert-primary" role="alert">
+         <%= notice %>
+       </div>
+       <% end %>
 
+       <% if error %>
+       <div class="alert alert-danger" role="alert">
+         <%= error %>
+       </div>
+       <% end %>
+
+       <form class="row g-3" action="/" method="post">
+         <div class="mb-3">
+           <label for="signature" class="form-label">署名</label>
+           <textarea class="form-control" name="signature" id="signature" rows="20"><%= signature %></textarea>
+         </div>
+         <div class="col-auto">
+           <button type="submit" class="btn btn-primary mb-3">保存</button>
+         </div>
+       </form>
+     </div>
+  </body>
+<html>
+    EOS
+    ERB.new(c, trim_mode: '-').result(binding)
+  end
+  # rubocop:enable all
   get '/' do
+    redirect to('/oauth2callback') unless session.has_key?(:credentials)
+    index_content(ENV['DEFAULT_SIGNATURE'])
+  end
+
+  post '/' do
     redirect to('/oauth2callback') unless session.has_key?(:credentials)
     client_opts = JSON.parse(session[:credentials])
     auth_client = Signet::OAuth2::Client.new(client_opts)
 
     gmail = ::Gmail::GmailService.new
     gmail.authorization = auth_client
-
     user = gmail.get_user_profile('me').email_address
     newSendAs = Gmail::SendAs.new
     newSendAs.send_as_email = user
-    newSendAs.signature = ENV['NEW_SIGNATURE']
+    newSendAs.signature = params['signature']
     newSendAs.is_primary = true
     newSendAs.is_default = true
     gmail.patch_user_setting_send_as('me', user, newSendAs, options: {})
-    'OK'
+    index_content(params['signature'], '正常に保存しました')
   end
 
   get '/oauth2callback' do
@@ -39,6 +82,7 @@ class WebApp < Sinatra::Base
       scope: ['https://www.googleapis.com/auth/gmail.settings.basic', 'https://www.googleapis.com/auth/gmail.readonly'],
       redirect_uri: url('/oauth2callback')
     )
+
     if request['code'].nil?
       auth_uri = auth_client.authorization_uri.to_s
       redirect to(auth_uri)
