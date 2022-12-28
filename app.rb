@@ -66,6 +66,7 @@ class WebApp < Sinatra::Base
     auth_client = Signet::OAuth2::Client.new(client_opts)
     gmail = ::Gmail::GmailService.new
     gmail.authorization = auth_client
+    gmail
   end
 
   post '/' do
