@@ -50,28 +50,33 @@ class WebApp < Sinatra::Base
   </body>
 <html>
     EOS
+    email = client.get_user_profile('me').email_address
     ERB.new(c, trim_mode: '-').result(binding)
   end
   # rubocop:enable all
+
   get '/' do
     redirect to('/oauth2callback') unless session.has_key?(:credentials)
     index_content(ENV['DEFAULT_SIGNATURE'])
   end
 
-  post '/' do
-    redirect to('/oauth2callback') unless session.has_key?(:credentials)
+  def gmail
     client_opts = JSON.parse(session[:credentials])
     auth_client = Signet::OAuth2::Client.new(client_opts)
-
     gmail = ::Gmail::GmailService.new
     gmail.authorization = auth_client
-    user = gmail.get_user_profile('me').email_address
-    newSendAs = Gmail::SendAs.new
-    newSendAs.send_as_email = user
-    newSendAs.signature = params['signature']
-    newSendAs.is_primary = true
-    newSendAs.is_default = true
-    gmail.patch_user_setting_send_as('me', user, newSendAs, options: {})
+  end
+
+  post '/' do
+    redirect to('/oauth2callback') unless session.has_key?(:credentials)
+    client = gmail
+    user = client.get_user_profile('me').email_address
+    new_send_as = Gmail::SendAs.new
+    new_send_as.send_as_email = user
+    new_send_as.signature = params['signature']
+    new_send_as.is_primary = true
+    new_send_as.is_default = true
+    client.patch_user_setting_send_as('me', user, new_send_as, options: {})
     index_content(params['signature'], '正常に保存しました')
   end
 
