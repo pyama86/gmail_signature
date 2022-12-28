@@ -50,7 +50,7 @@ class WebApp < Sinatra::Base
   </body>
 <html>
     EOS
-    email = client.get_user_profile('me').email_address
+    email = gmail.get_user_profile('me').email_address
     c.gsub!(/%email%/, email)
     ERB.new(c, trim_mode: '-').result(binding)
   end
