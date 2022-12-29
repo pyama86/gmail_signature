@@ -77,9 +77,10 @@ class WebApp < Sinatra::Base
     redirect to('/oauth2callback') unless session.has_key?(:credentials)
     client = gmail
     user = client.get_user_profile('me').email_address
+    signature = params['signature'].gsub(/\r\n/, '<br>')
     new_send_as = Gmail::SendAs.new
     new_send_as.send_as_email = user
-    new_send_as.signature = params['signature']
+    new_send_as.signature = signature
     new_send_as.is_primary = true
     new_send_as.is_default = true
     client.patch_user_setting_send_as('me', user, new_send_as, options: {})
