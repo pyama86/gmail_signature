@@ -50,8 +50,12 @@ class WebApp < Sinatra::Base
   </body>
 <html>
     EOS
-    email = gmail.get_user_profile('me').email_address
-    c.gsub!(/%email%/, email)
+    begin
+    email = gmail.get_user_profile('me').email_address 
+    signature = signature.gsub(/%email%/, email)
+    rescue
+      redirect to('/oauth2callback')
+    end
     ERB.new(c, trim_mode: '-').result(binding)
   end
   # rubocop:enable all
