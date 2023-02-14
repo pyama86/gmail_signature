@@ -38,7 +38,7 @@ GEM
     public_suffix (5.0.1)
     puma (6.0.0)
       nio4r (~> 2.0)
-    rack (2.2.5)
+    rack (2.2.6.2)
     rack-protection (3.0.5)
       rack
     redis (4.8.0)
@@ -72,10 +72,10 @@ GEM
 
 PLATFORMS
   arm64-darwin-21
+  x86_64-linux
 
 DEPENDENCIES
   google-apis-gmail_v1
-  googleauth
   puma
   redis
   sinatra
